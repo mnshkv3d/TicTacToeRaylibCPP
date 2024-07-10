@@ -1,0 +1,24 @@
+
+BasedOnStyle: Microsoft
+IndentWidth: 4
+UseTab: Never
+TabWidth: 4
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterEnum: false
+  AfterStruct: false
+  AfterClass: true
+  SplitEmptyFunction: false
+ColumnLimit: 140
+AccessModifierOffset: -4
+SortIncludes: false
+AllowShortEnumsOnASingleLine: true
+AllowShortBlocksOnASingleLine: false
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: Inline
+PointerAlignment: Left
+AllowShortIfStatementsOnASingleLine: true
+SpacesBeforeTrailingComments: 2
+AllowShortCaseLabelsOnASingleLine: true
+IndentCaseLabels: true
+AlwaysBreakTemplateDeclarations: Yes
