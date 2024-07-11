@@ -11,10 +11,26 @@ const int cellWidth = 200;
 const int cellHeight = 200;
 const int screenWidth = 1280;
 const int screenHeight = 800;
+int MoveNumber = 0;
 
-enum CellValue { EMPTY, X, O };
-enum GameMode { HOTSEAT, VSPC };
-enum GameState { MAINMENU, PLAYER_X_MOVE, PLAYER_O_MOVE, END };
+enum CellValue
+{
+    EMPTY,
+    X,
+    O
+};
+enum GameMode
+{
+    HOTSEAT,
+    VSPC
+};
+enum GameState
+{
+    MAINMENU,
+    PLAYER_X_MOVE,
+    PLAYER_O_MOVE,
+    END
+};
 
 struct GameManager
 {
@@ -32,7 +48,8 @@ struct Cell
     int indexJ;
     CellValue value;
 
-    Cell(int indexI = 0, int indexJ = 0, CellValue value = EMPTY) : indexI(indexI), indexJ(indexJ), value(EMPTY) {}
+    Cell(int indexI = 0, int indexJ = 0, CellValue value = EMPTY)
+        : indexI(indexI), indexJ(indexJ), value(EMPTY) {}
 };
 
 class Grid
@@ -42,6 +59,7 @@ public:
     void GridInit();
     void DrawGrid();
     void ChangeCellState(Vector2 MousePosition, GameManager& GameManager);
+    bool CheckWinner();
 
     Cell& getCell(int i, int j);
 
@@ -54,6 +72,8 @@ class Player
 public:
 };
 
+void CheckWinner(Grid& Grid);
+
 int main()
 {
 
@@ -62,23 +82,29 @@ int main()
     GameManager gm;
     Grid grid;
     gm.CurrentGameState = PLAYER_X_MOVE;
+
     while (!WindowShouldClose())
     {
         // Game loop update section
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && gm.CurrentGameState != MAINMENU)
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && gm.CurrentGameState != MAINMENU && !grid.CheckWinner())
         {
             if (gm.CurrentGameState == PLAYER_X_MOVE)
             {
                 grid.ChangeCellState(GetMousePosition(), gm);
-                printf("Player X move\n");
                 gm.CurrentGameState = PLAYER_O_MOVE;
+                grid.CheckWinner();
             }
             else if (gm.CurrentGameState == PLAYER_O_MOVE)
             {
                 grid.ChangeCellState(GetMousePosition(), gm);
-                printf("Player O move \n");
                 gm.CurrentGameState = PLAYER_X_MOVE;
+                grid.CheckWinner();
             }
+        }
+        if (IsKeyPressed(KEY_SPACE))
+        {
+            grid.GridInit();
+            MoveNumber = 0;
         }
 
         // Drawing section
@@ -151,12 +177,49 @@ void Grid::ChangeCellState(Vector2 MousePosition, GameManager& GameManager)
         if (i >= 0 && i < COLS && j >= 0 && j < ROWS)
         {
             // change cell state
+
             if (grid[i][j].value == EMPTY && GameManager.CurrentGameState == PLAYER_X_MOVE)
+            {
                 grid[i][j].value = X;
+                MoveNumber++;
+                printf("Move X\nCell i: %d, Cell j: %d \nMove number: %d\n", i, j, MoveNumber);
+            }
             else if (grid[i][j].value == EMPTY && GameManager.CurrentGameState == PLAYER_O_MOVE)
+            {
                 grid[i][j].value = O;
+                MoveNumber++;
+                printf("Move O\nCell i: %d, Cell j: %d \nMove number: %d\n", i, j, MoveNumber);
+            }
         }
     }
+}
+
+bool Grid::CheckWinner()
+{
+    if (MoveNumber >= 5)
+    {
+        // firs row
+        if (grid[0][0].value != EMPTY && grid[0][0].value == grid[0][1].value && grid[0][1].value == grid[0][2].value)
+        {
+            printf("LINE!\n");
+            return true;
+        }
+        // second row
+        else if (grid[1][0].value != EMPTY && grid[1][0].value == grid[1][1].value && grid[1][1].value == grid[1][2].value)
+        {
+            printf("LINE 2!\n");
+        }
+        // third row
+        else if (grid[2][0].value != EMPTY && grid[2][0].value == grid[2][1].value && grid[2][1].value == grid[2][2].value)
+        {
+            printf("LINE 3!\n");
+        }
+    }
+    else
+    {
+        printf("Not enough moves yet");
+    }
+    return false;
 }
 
 Cell& Grid::getCell(int i, int j)

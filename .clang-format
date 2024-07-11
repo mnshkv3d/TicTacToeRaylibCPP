@@ -1,15 +1,14 @@
-
 BasedOnStyle: Microsoft
-IndentWidth: 4
+#IndentWidth: 4
 UseTab: Never
 TabWidth: 4
 BreakBeforeBraces: Custom
 BraceWrapping:
-  AfterEnum: false
+  AfterEnum: true
   AfterStruct: true
   AfterClass: true
   SplitEmptyFunction: false
-ColumnLimit: 140
+ColumnLimit: 0
 AccessModifierOffset: -4
 SortIncludes: false
 AllowShortEnumsOnASingleLine: true
