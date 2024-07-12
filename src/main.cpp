@@ -120,13 +120,20 @@ int main()
                         {
                             case 0:
                                 gm.CurrentGameState = PLAYER_X_MOVE;
+                                mainMenuButtonSelected = -1;
+                                break;
                             case 1:
                                 gm.CurrentGameState = PLAYER_O_MOVE;
+                                mainMenuButtonSelected = -1;
+                                break;
                         }
                     }
                 }
                 else
+                {
                     mouseHoverRec = -1;
+                    mainMenuButtonSelected = -1;
+                }
             }
         }
 
@@ -168,6 +175,7 @@ int main()
             // Draw rectangles
             for (int i = 0; i < 2; i++)
             {
+                printf("mouseHoveRec = %d mainMenubuttonSelected = %d\n", mouseHoverRec, mainMenuButtonSelected);
                 DrawRectangleRec(MainMenuRecs[i], ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
                 DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? BLUE : GRAY);
                 DrawText(MainMenuButtons[i], (int)(MainMenuRecs[i].x + MainMenuRecs[i].width / 2 - MeasureText(MainMenuButtons[i], 10) / 2), (int)MainMenuRecs[i].y + 11, 10, ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
