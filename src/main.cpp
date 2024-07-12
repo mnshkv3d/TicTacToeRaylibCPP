@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstdio>
 #include <vector>
+#include <string>
+#include <array>
 #include "include/raylib-cpp.hpp"
 #include "include/raymath.hpp"
 
@@ -12,6 +14,14 @@ const int cellHeight = 200;
 const int screenWidth = 1280;
 const int screenHeight = 800;
 int MoveNumber = 0;
+
+enum MainMenu
+{
+    FIRST_MOVE_X,
+    FIRST_MOVE_O,
+};
+
+static const char* MainMenuButtons[] = {"X moves first", "O moves first"};
 
 enum CellValue
 {
@@ -59,7 +69,7 @@ public:
     void GridInit();
     void DrawGrid();
     void ChangeCellState(Vector2 MousePosition, GameManager& GameManager);
-    bool CheckWinner();
+    bool CheckWinner(GameManager& GameManager);
 
     Cell& getCell(int i, int j);
 
@@ -72,44 +82,97 @@ class Player
 public:
 };
 
-void CheckWinner(Grid& Grid);
-
 int main()
 {
 
     raylib::Window window(screenWidth, screenHeight, "PingTacPong");
     window.SetTargetFPS(60);
+
+    Rectangle MainMenuRecs[2] = {0};
+    int mainMenuButtonSelected = -1;
+    int mouseHoverRec = -1;
+
+    for (int i = 0; i < 2; i++)
+        MainMenuRecs[i] = (Rectangle){40.0f, (float)(50 + 32 * i), 150.0f, 30.0f};
+
     GameManager gm;
     Grid grid;
-    gm.CurrentGameState = PLAYER_X_MOVE;
+    // gm.CurrentGameState = PLAYER_X_MOVE;
 
     while (!WindowShouldClose())
     {
+
         // Game loop update section
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && gm.CurrentGameState != MAINMENU && !grid.CheckWinner())
+
+        // Mouse toggle group logic
+        if (gm.CurrentGameState == MAINMENU)
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                if (CheckCollisionPointRec(GetMousePosition(), MainMenuRecs[i]))
+                {
+                    mouseHoverRec = i;
+
+                    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+                    {
+                        mainMenuButtonSelected = i;
+                        switch (mainMenuButtonSelected)
+                        {
+                            case 0:
+                                gm.CurrentGameState = PLAYER_X_MOVE;
+                            case 1:
+                                gm.CurrentGameState = PLAYER_O_MOVE;
+                        }
+                    }
+                }
+                else
+                    mouseHoverRec = -1;
+            }
+        }
+
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (gm.CurrentGameState != MAINMENU || gm.CurrentGameState == END))
         {
             if (gm.CurrentGameState == PLAYER_X_MOVE)
             {
                 grid.ChangeCellState(GetMousePosition(), gm);
                 gm.CurrentGameState = PLAYER_O_MOVE;
-                grid.CheckWinner();
+                grid.CheckWinner(gm);
+                if (grid.CheckWinner(gm))
+                {
+                    printf("Player X Win");
+                }
             }
             else if (gm.CurrentGameState == PLAYER_O_MOVE)
             {
                 grid.ChangeCellState(GetMousePosition(), gm);
                 gm.CurrentGameState = PLAYER_X_MOVE;
-                grid.CheckWinner();
+                grid.CheckWinner(gm);
+                if (grid.CheckWinner(gm))
+                {
+                    printf("Player O Win");
+                }
             }
         }
         if (IsKeyPressed(KEY_SPACE))
         {
             grid.GridInit();
+            gm.CurrentGameState = MAINMENU;
             MoveNumber = 0;
         }
 
         // Drawing section
         BeginDrawing();
         window.ClearBackground(RAYWHITE);
+        if (gm.CurrentGameState == MAINMENU)
+        {
+            // Draw rectangles
+            for (int i = 0; i < 2; i++)
+            {
+                DrawRectangleRec(MainMenuRecs[i], ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? BLUE : GRAY);
+                DrawText(MainMenuButtons[i], (int)(MainMenuRecs[i].x + MainMenuRecs[i].width / 2 - MeasureText(MainMenuButtons[i], 10) / 2), (int)MainMenuRecs[i].y + 11, 10, ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
+            }
+        }
         if (gm.CurrentGameState != MAINMENU)
         {
             grid.DrawGrid();
@@ -194,30 +257,66 @@ void Grid::ChangeCellState(Vector2 MousePosition, GameManager& GameManager)
     }
 }
 
-bool Grid::CheckWinner()
+bool Grid::CheckWinner(GameManager& GameManager)
 {
     if (MoveNumber >= 5)
     {
-        // firs row
+        // firs COL
         if (grid[0][0].value != EMPTY && grid[0][0].value == grid[0][1].value && grid[0][1].value == grid[0][2].value)
         {
-            printf("LINE!\n");
+            printf("COL 1!\n");
+            GameManager.CurrentGameState = END;
+            return true;
+        }
+        // second COL
+        else if (grid[1][0].value != EMPTY && grid[1][0].value == grid[1][1].value && grid[1][1].value == grid[1][2].value)
+        {
+            printf("COL 2!\n");
+            GameManager.CurrentGameState = END;
+            return true;
+        }
+        // third COL
+        else if (grid[2][0].value != EMPTY && grid[2][0].value == grid[2][1].value && grid[2][1].value == grid[2][2].value)
+        {
+            printf("COL 3!\n");
+            GameManager.CurrentGameState = END;
+            return true;
+        }
+        // firs row
+        else if (grid[0][0].value != EMPTY && grid[0][0].value == grid[1][0].value && grid[1][0].value == grid[2][0].value)
+        {
+            printf("ROW 1!\n");
+            GameManager.CurrentGameState = END;
             return true;
         }
         // second row
-        else if (grid[1][0].value != EMPTY && grid[1][0].value == grid[1][1].value && grid[1][1].value == grid[1][2].value)
+        else if (grid[0][1].value != EMPTY && grid[0][1].value == grid[1][1].value && grid[1][1].value == grid[2][1].value)
         {
-            printf("LINE 2!\n");
+            printf("ROW 2!\n");
+            GameManager.CurrentGameState = END;
+            return true;
         }
         // third row
-        else if (grid[2][0].value != EMPTY && grid[2][0].value == grid[2][1].value && grid[2][1].value == grid[2][2].value)
+        else if (grid[0][2].value != EMPTY && grid[0][2].value == grid[1][2].value && grid[1][2].value == grid[2][2].value)
         {
-            printf("LINE 3!\n");
+            printf("ROW3 3!\n");
+            GameManager.CurrentGameState = END;
+            return true;
         }
-    }
-    else
-    {
-        printf("Not enough moves yet");
+        // diagonal 1
+        else if (grid[0][0].value != EMPTY && grid[0][0].value == grid[1][1].value && grid[1][1].value == grid[2][2].value)
+        {
+            printf("DIAGONAL 1!\n");
+            GameManager.CurrentGameState = END;
+            return true;
+        }
+        // diagonal 2
+        else if (grid[2][0].value != EMPTY && grid[2][0].value == grid[1][1].value && grid[1][1].value == grid[0][2].value)
+        {
+            printf("DIAGONAL 2!\n");
+            GameManager.CurrentGameState = END;
+            return true;
+        }
     }
     return false;
 }
