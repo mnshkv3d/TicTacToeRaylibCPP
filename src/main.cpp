@@ -42,9 +42,10 @@ struct Cell
     int indexI;
     int indexJ;
     CellValue value;
+    Color cellColor;
 
-    Cell(int indexI = 0, int indexJ = 0, CellValue value = EMPTY)
-        : indexI(indexI), indexJ(indexJ), value(EMPTY) {}
+    Cell(int indexI = 0, int indexJ = 0, CellValue value = EMPTY, Color cellColor = GREEN)
+        : indexI(indexI), indexJ(indexJ), value(value), cellColor(cellColor) {}
 };
 
 class Grid
@@ -146,6 +147,10 @@ int main()
                 }
             }
         }
+        if (MoveNumber == 9 && currentGameState != PLAYER_X_WIN && currentGameState != PLAYER_O_WIN)
+        {
+            currentGameState = TIE;
+        }
         if (IsKeyPressed(KEY_SPACE))
         {
             grid.GridInit();
@@ -166,7 +171,7 @@ int main()
                 DrawText(MainMenuButtons[i], (int)(MainMenuRecs[i].x + MainMenuRecs[i].width / 2 - MeasureText(MainMenuButtons[i], 10) / 2), (int)MainMenuRecs[i].y + 11, 10, ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
             }
         }
-        if (currentGameState != MAINMENU && currentGameState != PLAYER_X_WIN && currentGameState != PLAYER_O_WIN)
+        if (currentGameState != MAINMENU)
         {
             grid.DrawGrid();
         }
@@ -177,6 +182,10 @@ int main()
         if (currentGameState == PLAYER_O_WIN)
         {
             DrawText(TextFormat("PLAYER O WIN!"), screenWidth / 2, screenHeight / 2, 40, BLUE);
+        }
+        if (currentGameState == TIE)
+        {
+            DrawText(TextFormat("IT'S A TIE!"), (screenWidth / 2) - (screenWidth / 10), screenHeight / 2, 40, BLUE);
         }
 
         EndDrawing();
@@ -198,7 +207,7 @@ void Grid::GridInit()
     {
         for (int j = 0; j < ROWS; j++)
         {
-            grid[i][j] = Cell(i, j, EMPTY);
+            grid[i][j] = Cell(i, j, EMPTY, GREEN);
         }
     }
 }
@@ -212,7 +221,7 @@ void Grid::DrawGrid()
             int x = ((screenWidth / 2) - 300) + i * cellWidth;
             int y = ((screenHeight / 2) - 300) + j * cellHeight;
 
-            DrawRectangle(x, y, cellWidth, cellHeight, GREEN);
+            DrawRectangle(x, y, cellWidth, cellHeight, grid[i][j].cellColor);
             DrawRectangleLines(x, y, cellWidth, cellHeight, RAYWHITE);
 
             // Drawing cell contents based on their value
@@ -267,11 +276,19 @@ bool Grid::CheckWinner()
             if (grid[0][i].value != EMPTY && grid[0][i].value == grid[1][i].value && grid[1][i].value == grid[2][i].value)
             {
                 printf("LINE\n");
+                for (int j = 0; j < COLS; j++)
+                {
+                    grid[j][i].cellColor = GRAY;
+                }
                 return true;
             }
             else if (grid[i][0].value != EMPTY && grid[i][0].value == grid[i][1].value && grid[i][1].value == grid[i][2].value)
             {
                 printf("ROW\n");
+                for (int j = 0; j < COLS; j++)
+                {
+                    grid[i][j].cellColor = GRAY;
+                }
                 return true;
             }
         }
@@ -279,12 +296,19 @@ bool Grid::CheckWinner()
         if (grid[0][0].value != EMPTY && grid[0][0].value == grid[1][1].value && grid[1][1].value == grid[2][2].value)
         {
             printf("DIAGONAL 1!\n");
+            for (int i = 0; i < COLS; i++)
+            {
+                grid[i][i].cellColor = GRAY;
+            }
             return true;
         }
         // diagonal 2
         if (grid[2][0].value != EMPTY && grid[2][0].value == grid[1][1].value && grid[1][1].value == grid[0][2].value)
         {
             printf("DIAGONAL 2!\n");
+            grid[2][0].cellColor = GRAY;
+            grid[1][1].cellColor = GRAY;
+            grid[0][2].cellColor = GRAY;
             return true;
         }
     }
