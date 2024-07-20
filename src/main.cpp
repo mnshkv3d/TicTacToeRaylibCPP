@@ -33,9 +33,10 @@ enum GameState
     MAINMENU,
     PLAYER_X_MOVE,
     PLAYER_O_MOVE,
-    END
+    PLAYER_X_WIN,
+    PLAYER_O_WIN,
+    TIE
 };
-
 struct Cell
 {
     int indexI;
@@ -66,6 +67,7 @@ class Player
 public:
 };
 GameState currentGameState;
+
 int main()
 {
     currentGameState = MAINMENU;
@@ -121,15 +123,15 @@ int main()
             }
         }
 
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (currentGameState != MAINMENU || currentGameState == END))
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (currentGameState != MAINMENU))
         {
             if (currentGameState == PLAYER_X_MOVE)
             {
                 grid.ChangeCellState(GetMousePosition());
                 currentGameState = PLAYER_O_MOVE;
-                grid.CheckWinner();
                 if (grid.CheckWinner())
                 {
+                    currentGameState = PLAYER_X_WIN;
                     printf("Player X Win");
                 }
             }
@@ -137,9 +139,9 @@ int main()
             {
                 grid.ChangeCellState(GetMousePosition());
                 currentGameState = PLAYER_X_MOVE;
-                grid.CheckWinner();
                 if (grid.CheckWinner())
                 {
+                    currentGameState = PLAYER_O_WIN;
                     printf("Player O Win");
                 }
             }
@@ -159,15 +161,22 @@ int main()
             // Draw rectangles
             for (int i = 0; i < 2; i++)
             {
-                printf("mouseHoveRec = %d mainMenubuttonSelected = %d\n", mouseHoverRec, mainMenuButtonSelected);
                 DrawRectangleRec(MainMenuRecs[i], ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
                 DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? BLUE : GRAY);
                 DrawText(MainMenuButtons[i], (int)(MainMenuRecs[i].x + MainMenuRecs[i].width / 2 - MeasureText(MainMenuButtons[i], 10) / 2), (int)MainMenuRecs[i].y + 11, 10, ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
             }
         }
-        if (currentGameState != MAINMENU && currentGameState != END)
+        if (currentGameState != MAINMENU && currentGameState != PLAYER_X_WIN && currentGameState != PLAYER_O_WIN)
         {
             grid.DrawGrid();
+        }
+        if (currentGameState == PLAYER_X_WIN)
+        {
+            DrawText(TextFormat("PLAYER X WIN!"), (screenWidth / 2) - (screenWidth / 10), screenHeight / 2, 40, BLUE);
+        }
+        if (currentGameState == PLAYER_O_WIN)
+        {
+            DrawText(TextFormat("PLAYER O WIN!"), screenWidth / 2, screenHeight / 2, 40, BLUE);
         }
 
         EndDrawing();
@@ -258,13 +267,11 @@ bool Grid::CheckWinner()
             if (grid[0][i].value != EMPTY && grid[0][i].value == grid[1][i].value && grid[1][i].value == grid[2][i].value)
             {
                 printf("LINE\n");
-                currentGameState = END;
                 return true;
             }
             else if (grid[i][0].value != EMPTY && grid[i][0].value == grid[i][1].value && grid[i][1].value == grid[i][2].value)
             {
                 printf("ROW\n");
-                currentGameState = END;
                 return true;
             }
         }
@@ -272,14 +279,12 @@ bool Grid::CheckWinner()
         if (grid[0][0].value != EMPTY && grid[0][0].value == grid[1][1].value && grid[1][1].value == grid[2][2].value)
         {
             printf("DIAGONAL 1!\n");
-            currentGameState = END;
             return true;
         }
         // diagonal 2
         if (grid[2][0].value != EMPTY && grid[2][0].value == grid[1][1].value && grid[1][1].value == grid[0][2].value)
         {
             printf("DIAGONAL 2!\n");
-            currentGameState = END;
             return true;
         }
     }
