@@ -2,9 +2,7 @@
 #include <cstdio>
 #include <vector>
 #include <string>
-#include <array>
 #include "include/raylib-cpp.hpp"
-#include "include/raymath.hpp"
 
 // global variables
 const int COLS = 3;
