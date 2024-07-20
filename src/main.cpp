@@ -55,8 +55,6 @@ public:
     void ChangeCellState(Vector2 MousePosition);
     bool CheckWinner();
 
-    Cell& getCell(int i, int j);
-
 private:
     std::vector<std::vector<Cell>> grid;
 };
@@ -149,7 +147,7 @@ int main()
         {
             currentGameState = TIE;
         }
-        if (IsKeyPressed(KEY_SPACE))
+        if (IsKeyPressed(KEY_SPACE) && currentGameState != PLAYER_X_MOVE && currentGameState != PLAYER_O_MOVE)
         {
             grid.GridInit();
             currentGameState = MAINMENU;
@@ -253,13 +251,11 @@ void Grid::ChangeCellState(Vector2 MousePosition)
             {
                 grid[i][j].value = X;
                 MoveNumber++;
-                printf("Move X\nCell i: %d, Cell j: %d \nMove number: %d\n", i, j, MoveNumber);
             }
             else if (grid[i][j].value == EMPTY && currentGameState == PLAYER_O_MOVE)
             {
                 grid[i][j].value = O;
                 MoveNumber++;
-                printf("Move O\nCell i: %d, Cell j: %d \nMove number: %d\n", i, j, MoveNumber);
             }
         }
     }
@@ -312,39 +308,3 @@ bool Grid::CheckWinner()
     }
     return false;
 }
-
-Cell& Grid::getCell(int i, int j)
-{
-    return grid[i][j];
-}
-
-// // check index for valid
-// if (i >= 0 && i < COLS && j >= 0 && j < ROWS)
-// {
-//     // change cell state
-//     if (grid[i][j].value == EMPTY)
-//         grid[i][j].value = X;
-//     else if (grid[i][j].value == X)
-//         grid[i][j].value = O;
-//     else if (grid[i][j].value == O)
-//         grid[i][j].value = EMPTY;
-// }
-
-// if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
-// {
-//     for (int i = 0; i < COLS; ++i)
-//     {
-//         for (int j = 0; j < ROWS; ++j)
-//         {
-//             Cell& cell = grid.getCell(i, j);
-//             std::cout << "Cell (" << cell.indexI << ", " << cell.indexJ << "): ";
-//             switch (cell.value)
-//             {
-//                 case EMPTY: std::cout << "EMPTY"; break;
-//                 case X: std::cout << "X"; break;
-//                 case O: std::cout << "O"; break;
-//             }
-//             std::cout << std::endl;
-//         }
-//     }
-// }
