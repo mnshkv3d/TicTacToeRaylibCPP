@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <vector>
 #include <string>
-#include "include/raylib-cpp.hpp"
+#include <raylib-cpp.hpp>
 
 // global variables
 const int COLS = 3;
@@ -14,6 +14,7 @@ const int screenHeight = 800;
 int MoveNumber = 0;
 
 static const char* MainMenuButtons[] = {"X moves first", "O moves first"};
+// static const char* WinText[] = {"PLAYER X WIN!", "PLAYER O WIN!", "IT'S A TIE!"};
 
 enum CellValue
 {
@@ -42,7 +43,7 @@ struct Cell
     CellValue value;
     Color cellColor;
 
-    Cell(int indexI = 0, int indexJ = 0, CellValue value = EMPTY, Color cellColor = GREEN)
+    Cell(int indexI = 0, int indexJ = 0, CellValue value = EMPTY, Color cellColor = GRAY)
         : indexI(indexI), indexJ(indexJ), value(value), cellColor(cellColor) {}
 };
 
@@ -71,11 +72,11 @@ int main()
     raylib::Window window(screenWidth, screenHeight, "PingTacPong");
     window.SetTargetFPS(60);
 
-    Rectangle MainMenuRecs[2] = {0};
+    Rectangle MainMenuRecs[3] = {0};
     int mainMenuButtonSelected = -1;
     int mouseHoverRec = -1;
 
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
     {
         MainMenuRecs[i] = (Rectangle){40.0f, (float)(50 + 32 * i), 150.0f, 30.0f};
     }
@@ -103,18 +104,18 @@ int main()
                         {
                             case 0:
                                 currentGameState = PLAYER_X_MOVE;
-                                mainMenuButtonSelected = -1;
+                                mainMenuButtonSelected = 1;
                                 break;
                             case 1:
                                 currentGameState = PLAYER_O_MOVE;
-                                mainMenuButtonSelected = -1;
+                                mainMenuButtonSelected = 2;
                                 break;
                         }
                     }
                 }
                 else
                 {
-                    mouseHoverRec = -1;
+                    // mouseHoverRec = -1;
                     mainMenuButtonSelected = -1;
                 }
             }
@@ -160,7 +161,7 @@ int main()
         if (currentGameState == MAINMENU)
         {
             // Draw rectangles
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 3; i++)
             {
                 DrawRectangleRec(MainMenuRecs[i], ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
                 DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? BLUE : GRAY);
@@ -173,6 +174,7 @@ int main()
         }
         if (currentGameState == PLAYER_X_WIN)
         {
+
             DrawText(TextFormat("PLAYER X WIN!"), (screenWidth / 2) - (screenWidth / 10), screenHeight / 2, 40, BLUE);
         }
         if (currentGameState == PLAYER_O_WIN)
@@ -203,7 +205,7 @@ void Grid::GridInit()
     {
         for (int j = 0; j < ROWS; j++)
         {
-            grid[i][j] = Cell(i, j, EMPTY, GREEN);
+            grid[i][j] = Cell(i, j, EMPTY, GRAY);
         }
     }
 }
@@ -272,7 +274,7 @@ bool Grid::CheckWinner()
                 printf("LINE\n");
                 for (int j = 0; j < COLS; j++)
                 {
-                    grid[j][i].cellColor = GRAY;
+                    grid[j][i].cellColor = GREEN;
                 }
                 return true;
             }
@@ -281,7 +283,7 @@ bool Grid::CheckWinner()
                 printf("ROW\n");
                 for (int j = 0; j < COLS; j++)
                 {
-                    grid[i][j].cellColor = GRAY;
+                    grid[i][j].cellColor = GREEN;
                 }
                 return true;
             }
@@ -292,7 +294,7 @@ bool Grid::CheckWinner()
             printf("DIAGONAL 1!\n");
             for (int i = 0; i < COLS; i++)
             {
-                grid[i][i].cellColor = GRAY;
+                grid[i][i].cellColor = GREEN;
             }
             return true;
         }
@@ -300,9 +302,9 @@ bool Grid::CheckWinner()
         if (grid[2][0].value != EMPTY && grid[2][0].value == grid[1][1].value && grid[1][1].value == grid[0][2].value)
         {
             printf("DIAGONAL 2!\n");
-            grid[2][0].cellColor = GRAY;
-            grid[1][1].cellColor = GRAY;
-            grid[0][2].cellColor = GRAY;
+            grid[2][0].cellColor = GREEN;
+            grid[1][1].cellColor = GREEN;
+            grid[0][2].cellColor = GREEN;
             return true;
         }
     }
