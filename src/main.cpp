@@ -66,6 +66,8 @@ public:
 };
 GameState currentGameState;
 
+bool IsMouseOnGrid(Vector2 MousePosition);
+
 int main()
 {
     currentGameState = MAINMENU;
@@ -85,7 +87,6 @@ int main()
 
     while (!WindowShouldClose())
     {
-
         // Game loop update section
 
         // Mouse toggle group logic
@@ -121,7 +122,7 @@ int main()
             }
         }
 
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (currentGameState != MAINMENU))
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (currentGameState != MAINMENU) && IsMouseOnGrid(GetMousePosition()))
         {
             if (currentGameState == PLAYER_X_MOVE)
             {
@@ -174,18 +175,16 @@ int main()
         }
         if (currentGameState == PLAYER_X_WIN)
         {
-
-            DrawText(TextFormat("PLAYER X WIN!"), (screenWidth / 2) - (screenWidth / 10), screenHeight / 2, 40, BLUE);
+            DrawText(TextFormat("PLAYER X WIN!"), (screenWidth - MeasureText("PLAYER X WIN!", 40)) / 2, screenHeight - 750, 40, BLUE);
         }
         if (currentGameState == PLAYER_O_WIN)
         {
-            DrawText(TextFormat("PLAYER O WIN!"), screenWidth / 2, screenHeight / 2, 40, BLUE);
+            DrawText(TextFormat("PLAYER O WIN!"), (screenWidth - MeasureText("PLAYER O WIN!", 40)) / 2, screenHeight - 750, 40, BLUE);
         }
         if (currentGameState == TIE)
         {
-            DrawText(TextFormat("IT'S A TIE!"), (screenWidth / 2) - (screenWidth / 10), screenHeight / 2, 40, BLUE);
+            DrawText(TextFormat("IT'S A TIE!"), (screenWidth - MeasureText("IT'S A TIE!", 40)) / 2, screenHeight - 750, 40, BLUE);
         }
-
         EndDrawing();
     }
 
@@ -205,7 +204,7 @@ void Grid::GridInit()
     {
         for (int j = 0; j < ROWS; j++)
         {
-            grid[i][j] = Cell(i, j, EMPTY, GRAY);
+            grid[i][j] = Cell(i, j, EMPTY, LIGHTGRAY);
         }
     }
 }
@@ -238,9 +237,6 @@ void Grid::DrawGrid()
 
 void Grid::ChangeCellState(Vector2 MousePosition)
 {
-    // check if mouse in Cells area
-    if (MousePosition.x >= (screenWidth / 2) - 300 && MousePosition.x <= (screenWidth / 2) + 300 &&
-        MousePosition.y >= (screenHeight / 2) - 300 && MousePosition.y <= (screenHeight / 2) + 300)
     {
         int i = (MousePosition.x - ((screenWidth / 2) - 300)) / cellWidth;
         int j = (MousePosition.y - ((screenHeight / 2) - 300)) / cellHeight;
@@ -271,7 +267,6 @@ bool Grid::CheckWinner()
         {
             if (grid[0][i].value != EMPTY && grid[0][i].value == grid[1][i].value && grid[1][i].value == grid[2][i].value)
             {
-                printf("LINE\n");
                 for (int j = 0; j < COLS; j++)
                 {
                     grid[j][i].cellColor = GREEN;
@@ -280,7 +275,6 @@ bool Grid::CheckWinner()
             }
             else if (grid[i][0].value != EMPTY && grid[i][0].value == grid[i][1].value && grid[i][1].value == grid[i][2].value)
             {
-                printf("ROW\n");
                 for (int j = 0; j < COLS; j++)
                 {
                     grid[i][j].cellColor = GREEN;
@@ -291,7 +285,6 @@ bool Grid::CheckWinner()
         // diagonal 1
         if (grid[0][0].value != EMPTY && grid[0][0].value == grid[1][1].value && grid[1][1].value == grid[2][2].value)
         {
-            printf("DIAGONAL 1!\n");
             for (int i = 0; i < COLS; i++)
             {
                 grid[i][i].cellColor = GREEN;
@@ -301,7 +294,6 @@ bool Grid::CheckWinner()
         // diagonal 2
         if (grid[2][0].value != EMPTY && grid[2][0].value == grid[1][1].value && grid[1][1].value == grid[0][2].value)
         {
-            printf("DIAGONAL 2!\n");
             grid[2][0].cellColor = GREEN;
             grid[1][1].cellColor = GREEN;
             grid[0][2].cellColor = GREEN;
@@ -309,4 +301,18 @@ bool Grid::CheckWinner()
         }
     }
     return false;
+}
+
+bool IsMouseOnGrid(Vector2 MousePosition)
+{
+    // check if mouse in Cells area
+    if (MousePosition.x >= (screenWidth / 2) - 300 && MousePosition.x <= (screenWidth / 2) + 300 &&
+        MousePosition.y >= (screenHeight / 2) - 300 && MousePosition.y <= (screenHeight / 2) + 300)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
