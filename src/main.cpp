@@ -7,6 +7,7 @@
 // global variables
 const int COLS = 3;
 const int ROWS = 3;
+const int NumSquares = 9;
 const int cellWidth = 200;
 const int cellHeight = 200;
 const int screenWidth = 1280;
@@ -38,12 +39,13 @@ enum GameState
 };
 struct Cell
 {
+    int cellNumber;
     int indexI;
     int indexJ;
     CellValue value;
     Color cellColor;
 
-    Cell(int indexI = 0, int indexJ = 0, CellValue value = EMPTY, Color cellColor = GRAY)
+    Cell(int cellNumber = 0, int indexI = 0, int indexJ = 0, CellValue value = EMPTY, Color cellColor = GRAY)
         : indexI(indexI), indexJ(indexJ), value(value), cellColor(cellColor) {}
 };
 
@@ -59,6 +61,14 @@ public:
 private:
     std::vector<std::vector<Cell>> grid;
 };
+class GameLogic
+{
+private:
+    int humanMove(const std::vector<CellValue>& board, int move);
+    int computerMove(const std::vector<CellValue>& board);
+
+public:
+};
 
 class Player
 {
@@ -70,10 +80,16 @@ bool IsMouseOnGrid(Vector2 MousePosition);
 
 int main()
 {
-    currentGameState = MAINMENU;
+    // Window init
     raylib::Window window(screenWidth, screenHeight, "PingTacPong");
     window.SetTargetFPS(60);
+    // Window init
 
+    // creating game objects
+    std::vector<CellValue> board(NumSquares, EMPTY);
+    Grid grid;
+
+    // Main menu UI
     Rectangle MainMenuRecs[3] = {0};
     int mainMenuButtonSelected = -1;
     int mouseHoverRec = -1;
@@ -82,14 +98,17 @@ int main()
     {
         MainMenuRecs[i] = (Rectangle){40.0f, (float)(50 + 32 * i), 150.0f, 30.0f};
     }
+    // Main menu UI
 
-    Grid grid;
+    // initial game state
+    currentGameState = MAINMENU;
 
+    // main game loop
     while (!WindowShouldClose())
     {
         // Game loop update section
 
-        // Mouse toggle group logic
+        // Menu UI update
         if (currentGameState == MAINMENU)
         {
             for (int i = 0; i < 2; i++)
@@ -121,7 +140,9 @@ int main()
                 }
             }
         }
+        // Menu UI update
 
+        // Player interaction section
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (currentGameState != MAINMENU) && IsMouseOnGrid(GetMousePosition()))
         {
             if (currentGameState == PLAYER_X_MOVE)
@@ -155,8 +176,9 @@ int main()
             currentGameState = MAINMENU;
             MoveNumber = 0;
         }
+        // Player interaction section
 
-        // Drawing section
+        //  Drawing section
         BeginDrawing();
         window.ClearBackground(RAYWHITE);
         if (currentGameState == MAINMENU)
@@ -200,11 +222,13 @@ Grid::Grid()
 
 void Grid::GridInit()
 {
+    int cellNumber = 0;
     for (int i = 0; i < COLS; i++)
     {
         for (int j = 0; j < ROWS; j++)
         {
-            grid[i][j] = Cell(i, j, EMPTY, LIGHTGRAY);
+            grid[i][j] = Cell(cellNumber, i, j, EMPTY, LIGHTGRAY);
+            cellNumber++;
         }
     }
 }
