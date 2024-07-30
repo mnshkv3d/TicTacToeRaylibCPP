@@ -1,7 +1,9 @@
 #include <iostream>
+#include <memory>
 #include <cstdio>
 #include <vector>
 #include <string>
+#include <algorithm>
 #include <raylib-cpp.hpp>
 
 // global variables
@@ -14,7 +16,8 @@ const int screenWidth = 1280;
 const int screenHeight = 800;
 int MoveNumber = 0;
 
-static const char* MainMenuButtons[] = {"X moves first", "O moves first"};
+static const char* MainMenuButtons[] = {"Hotseat", "Versus AI", "X moves first", "O moves first", "Start Game"};
+
 // static const char* WinText[] = {"PLAYER X WIN!", "PLAYER O WIN!", "IT'S A TIE!"};
 
 enum CellValue
@@ -26,7 +29,7 @@ enum CellValue
 enum GameMode
 {
     HOTSEAT,
-    VSPC
+    VERSUS_AI
 };
 enum GameState
 {
@@ -46,7 +49,7 @@ struct Cell
     Color cellColor;
 
     Cell(int cellNumber = 0, int indexI = 0, int indexJ = 0, CellValue value = EMPTY, Color cellColor = GRAY)
-        : indexI(indexI), indexJ(indexJ), value(value), cellColor(cellColor) {}
+        : cellNumber(cellNumber), indexI(indexI), indexJ(indexJ), value(value), cellColor(cellColor) {}
 };
 
 class Grid
@@ -55,26 +58,35 @@ public:
     Grid();
     void GridInit();
     void DrawGrid();
-    void ChangeCellState(Vector2 MousePosition);
+    void ChangeCellState(Vector2 MousePosition, GameState& currentGameState, std::vector<CellValue>& board);
     bool CheckWinner();
 
 private:
     std::vector<std::vector<Cell>> grid;
 };
-class GameLogic
-{
-private:
-    int humanMove(const std::vector<CellValue>& board, int move);
-    int computerMove(const std::vector<CellValue>& board);
-
-public:
-};
 
 class Player
 {
+    CellValue piece;
+
 public:
+    virtual ~Player() {}
+
+    void setPiece(CellValue p) { piece = p; };
+    CellValue getPiece() const { return piece; };
 };
-GameState currentGameState;
+
+class HumanPlayer : public Player
+{
+public:
+    void HumanMove();
+};
+
+class AIPlayer : public Player
+{
+public:
+    void AIMove();
+};
 
 bool IsMouseOnGrid(Vector2 MousePosition);
 
@@ -86,15 +98,21 @@ int main()
     // Window init
 
     // creating game objects
-    std::vector<CellValue> board(NumSquares, EMPTY);
+    GameState currentGameState;
+    std::unique_ptr<Player> player1;
+    std::unique_ptr<Player> player2;
+    // GameMode gameMode = HOTSEAT;
     Grid grid;
+    std::vector<CellValue> board(NumSquares, EMPTY);
 
     // Main menu UI
     Rectangle MainMenuRecs[3] = {0};
     int mainMenuButtonSelected = -1;
     int mouseHoverRec = -1;
+    bool isMovesFirst = false;
+    bool isVersusAI = false;
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 5; i++)
     {
         MainMenuRecs[i] = (Rectangle){40.0f, (float)(50 + 32 * i), 150.0f, 30.0f};
     }
@@ -111,7 +129,7 @@ int main()
         // Menu UI update
         if (currentGameState == MAINMENU)
         {
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 5; i++)
             {
                 if (CheckCollisionPointRec(GetMousePosition(), MainMenuRecs[i]))
                 {
@@ -122,14 +140,38 @@ int main()
                         mainMenuButtonSelected = i;
                         switch (mainMenuButtonSelected)
                         {
-                            case 0:
-                                currentGameState = PLAYER_X_MOVE;
+                            case 0:  // Hotseat
+                            {
+                                player1 = std::make_unique<HumanPlayer>();
+                                player2 = std::make_unique<HumanPlayer>();
                                 mainMenuButtonSelected = 1;
-                                break;
-                            case 1:
-                                currentGameState = PLAYER_O_MOVE;
+                                // break;
+                            }
+
+                            case 1:  // Versus AI
+                            {
+                                player1 = std::make_unique<HumanPlayer>();
+                                player2 = std::make_unique<AIPlayer>();
+                                isVersusAI = true;
                                 mainMenuButtonSelected = 2;
+                                // break;
+                            }
+                            case 3:  // Player X moves first
+                            {
+                                isMovesFirst = true;
+                                mainMenuButtonSelected = 3;
+                                // break;
+                            }
+                            case 4:  // Player O moves first
+                            {
+                                isMovesFirst = false;
+                                mainMenuButtonSelected = 4;
+                                // break;
+                            }
+                            case 5: {
+                                isMovesFirst ? currentGameState = PLAYER_X_MOVE : currentGameState = PLAYER_O_MOVE;
                                 break;
+                            }
                         }
                     }
                 }
@@ -141,29 +183,31 @@ int main()
             }
         }
         // Menu UI update
-
         // Player interaction section
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (currentGameState != MAINMENU) && IsMouseOnGrid(GetMousePosition()))
         {
             if (currentGameState == PLAYER_X_MOVE)
             {
-                grid.ChangeCellState(GetMousePosition());
+                grid.ChangeCellState(GetMousePosition(), currentGameState, board);
                 currentGameState = PLAYER_O_MOVE;
-                if (grid.CheckWinner())
-                {
-                    currentGameState = PLAYER_X_WIN;
-                    printf("Player X Win");
-                }
             }
             else if (currentGameState == PLAYER_O_MOVE)
             {
-                grid.ChangeCellState(GetMousePosition());
+                grid.ChangeCellState(GetMousePosition(), currentGameState, board);
                 currentGameState = PLAYER_X_MOVE;
-                if (grid.CheckWinner())
-                {
-                    currentGameState = PLAYER_O_WIN;
-                    printf("Player O Win");
-                }
+            }
+        }
+        if (MoveNumber >= 5 && (currentGameState == PLAYER_X_MOVE || currentGameState == PLAYER_O_MOVE))
+        {
+            if (grid.CheckWinner())
+            {
+                currentGameState = PLAYER_X_WIN;
+                printf("WIN X");
+            }
+            if (grid.CheckWinner())
+            {
+                currentGameState = PLAYER_O_WIN;
+                printf("WIN O");
             }
         }
         if (MoveNumber == 9 && currentGameState != PLAYER_X_WIN && currentGameState != PLAYER_O_WIN)
@@ -184,7 +228,7 @@ int main()
         if (currentGameState == MAINMENU)
         {
             // Draw rectangles
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 5; i++)
             {
                 DrawRectangleRec(MainMenuRecs[i], ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
                 DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? BLUE : GRAY);
@@ -229,6 +273,7 @@ void Grid::GridInit()
         {
             grid[i][j] = Cell(cellNumber, i, j, EMPTY, LIGHTGRAY);
             cellNumber++;
+            printf("Cell number: %d\n", grid[i][j].cellNumber);
         }
     }
 }
@@ -259,11 +304,12 @@ void Grid::DrawGrid()
     }
 }
 
-void Grid::ChangeCellState(Vector2 MousePosition)
+void Grid::ChangeCellState(Vector2 MousePosition, GameState& currentGameState, std::vector<CellValue>& board)
 {
     {
         int i = (MousePosition.x - ((screenWidth / 2) - 300)) / cellWidth;
         int j = (MousePosition.y - ((screenHeight / 2) - 300)) / cellHeight;
+        int cellNum = grid[i][j].cellNumber;
         // check index for valid
         if (i >= 0 && i < COLS && j >= 0 && j < ROWS)
         {
@@ -272,11 +318,13 @@ void Grid::ChangeCellState(Vector2 MousePosition)
             if (grid[i][j].value == EMPTY && currentGameState == PLAYER_X_MOVE)
             {
                 grid[i][j].value = X;
+                // board[cellNum] = X;
                 MoveNumber++;
             }
             else if (grid[i][j].value == EMPTY && currentGameState == PLAYER_O_MOVE)
             {
                 grid[i][j].value = O;
+                // board[cellNum] = O;
                 MoveNumber++;
             }
         }
@@ -339,4 +387,12 @@ bool IsMouseOnGrid(Vector2 MousePosition)
     {
         return false;
     }
+}
+
+void HumanPlayer::HumanMove()
+{
+}
+
+void AIPlayer::AIMove()
+{
 }
