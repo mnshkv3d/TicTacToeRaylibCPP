@@ -40,6 +40,18 @@ enum GameState
     PLAYER_O_WIN,
     TIE
 };
+
+struct GameSettings
+{
+    GameMode gameMode;
+    CellValue player1;
+    CellValue player2;
+    bool gameReadyToStart;
+
+    GameSettings(GameMode gm = HOTSEAT, CellValue p1 = X, CellValue p2 = O, bool start = false)
+        : gameMode(gm), player1(p1), player2(p2), gameReadyToStart(start) {}
+};
+
 struct Cell
 {
     int cellNumber;
@@ -99,18 +111,17 @@ int main()
 
     // creating game objects
     GameState currentGameState;
+    GameSettings currentGameSettings;
     std::unique_ptr<Player> player1;
     std::unique_ptr<Player> player2;
-    // GameMode gameMode = HOTSEAT;
     Grid grid;
     std::vector<CellValue> board(NumSquares, EMPTY);
 
     // Main menu UI
-    Rectangle MainMenuRecs[3] = {0};
+    Rectangle MainMenuRecs[5] = {0};
     int mainMenuButtonSelected = -1;
     int mouseHoverRec = -1;
-    bool isMovesFirst = false;
-    bool isVersusAI = false;
+    bool buttonClicked = false;
 
     for (int i = 0; i < 5; i++)
     {
@@ -134,52 +145,86 @@ int main()
                 if (CheckCollisionPointRec(GetMousePosition(), MainMenuRecs[i]))
                 {
                     mouseHoverRec = i;
+                    printf("Mouse hover %d\n", mouseHoverRec);
 
                     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
                     {
                         mainMenuButtonSelected = i;
-                        switch (mainMenuButtonSelected)
-                        {
-                            case 0:  // Hotseat
-                            {
-                                player1 = std::make_unique<HumanPlayer>();
-                                player2 = std::make_unique<HumanPlayer>();
-                                mainMenuButtonSelected = 1;
-                                // break;
-                            }
-
-                            case 1:  // Versus AI
-                            {
-                                player1 = std::make_unique<HumanPlayer>();
-                                player2 = std::make_unique<AIPlayer>();
-                                isVersusAI = true;
-                                mainMenuButtonSelected = 2;
-                                // break;
-                            }
-                            case 3:  // Player X moves first
-                            {
-                                isMovesFirst = true;
-                                mainMenuButtonSelected = 3;
-                                // break;
-                            }
-                            case 4:  // Player O moves first
-                            {
-                                isMovesFirst = false;
-                                mainMenuButtonSelected = 4;
-                                // break;
-                            }
-                            case 5: {
-                                isMovesFirst ? currentGameState = PLAYER_X_MOVE : currentGameState = PLAYER_O_MOVE;
-                                break;
-                            }
-                        }
+                        buttonClicked = true;
                     }
                 }
                 else
                 {
                     // mouseHoverRec = -1;
-                    mainMenuButtonSelected = -1;
+                    printf("Mouse hover %d\n", mouseHoverRec);
                 }
+            }
+            if (buttonClicked)
+            {
+                switch (mainMenuButtonSelected)
+                {
+                    case 0:  // Hotseat
+                    {
+                        player1 = std::make_unique<HumanPlayer>();
+                        player2 = std::make_unique<HumanPlayer>();
+                        currentGameSettings.gameMode = HOTSEAT;
+                        mainMenuButtonSelected = 1;
+                        printf("Button HotSeat pressed");
+                        break;
+                    }
+
+                    case 1:  // Versus AI
+                    {
+                        player1 = std::make_unique<HumanPlayer>();
+                        player2 = std::make_unique<AIPlayer>();
+                        currentGameSettings.gameMode = VERSUS_AI;
+                        mainMenuButtonSelected = 2;
+                        printf("Button AI");
+                        break;
+                    }
+                    case 2:  // Player X moves first
+                    {
+
+                        if (player1 != nullptr && player2 != nullptr)
+                        {
+                            player1->setPiece(X);
+                            player2->setPiece(O);
+                            currentGameSettings.gameReadyToStart = true;
+                        }
+                        mainMenuButtonSelected = 3;
+                        printf("Button X first");
+                        break;
+                    }
+                    case 3:  // Player O moves first
+                    {
+                        if (player1 != nullptr && player2 != nullptr)
+                        {
+                            player1->setPiece(O);
+                            player2->setPiece(X);
+                            currentGameSettings.gameReadyToStart = true;
+                        }
+                        mainMenuButtonSelected = 4;
+                        printf("Button O first");
+                        break;
+                    }
+                    case 4:  // Start game
+                    {
+                        if (currentGameSettings.gameReadyToStart && (player1 != nullptr && player2 != nullptr))
+                        {
+                            if (player1->getPiece() == X)
+                            {
+                                currentGameState = PLAYER_X_MOVE;
+                            }
+                            else
+                            {
+                                currentGameState = PLAYER_O_MOVE;
+                            }
+                        }
+                        printf("Button Start");
+                        break;
+                    }
+                }
+                buttonClicked = false;
             }
         }
         // Menu UI update
@@ -216,6 +261,12 @@ int main()
         }
         if (IsKeyPressed(KEY_SPACE) && currentGameState != PLAYER_X_MOVE && currentGameState != PLAYER_O_MOVE)
         {
+            if (player1 != nullptr && player2 != nullptr)
+            {
+                player1 = nullptr;
+                player2 = nullptr;
+                printf("Players destoyed");
+            }
             grid.GridInit();
             currentGameState = MAINMENU;
             MoveNumber = 0;
@@ -230,9 +281,9 @@ int main()
             // Draw rectangles
             for (int i = 0; i < 5; i++)
             {
-                DrawRectangleRec(MainMenuRecs[i], ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
-                DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? BLUE : GRAY);
-                DrawText(MainMenuButtons[i], (int)(MainMenuRecs[i].x + MainMenuRecs[i].width / 2 - MeasureText(MainMenuButtons[i], 10) / 2), (int)MainMenuRecs[i].y + 11, 10, ((i == mainMenuButtonSelected) || (i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
+                DrawRectangleRec(MainMenuRecs[i], ((i == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mouseHoverRec)) ? BLUE : GRAY);
+                DrawText(MainMenuButtons[i], (int)(MainMenuRecs[i].x + MainMenuRecs[i].width / 2 - MeasureText(MainMenuButtons[i], 10) / 2), (int)MainMenuRecs[i].y + 11, 10, ((i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
             }
         }
         if (currentGameState != MAINMENU)
