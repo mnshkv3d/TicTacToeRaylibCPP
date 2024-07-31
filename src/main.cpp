@@ -41,17 +41,6 @@ enum GameState
     TIE
 };
 
-struct GameSettings
-{
-    GameMode gameMode;
-    CellValue player1;
-    CellValue player2;
-    bool gameReadyToStart;
-
-    GameSettings(GameMode gm = HOTSEAT, CellValue p1 = X, CellValue p2 = O, bool start = false)
-        : gameMode(gm), player1(p1), player2(p2), gameReadyToStart(start) {}
-};
-
 struct Cell
 {
     int cellNumber;
@@ -105,27 +94,33 @@ bool IsMouseOnGrid(Vector2 MousePosition);
 int main()
 {
     // Window init
-    raylib::Window window(screenWidth, screenHeight, "PingTacPong");
+    raylib::Window window(screenWidth, screenHeight, "TicTacToe");
     window.SetTargetFPS(60);
     // Window init
 
     // creating game objects
     GameState currentGameState;
-    GameSettings currentGameSettings;
+    GameMode currentGameMode;
     std::unique_ptr<Player> player1;
     std::unique_ptr<Player> player2;
     Grid grid;
     std::vector<CellValue> board(NumSquares, EMPTY);
+    // creating game objects
 
     // Main menu UI
     Rectangle MainMenuRecs[5] = {0};
     int mainMenuButtonSelected = -1;
     int mouseHoverRec = -1;
     bool buttonClicked = false;
+    bool isGameModeSelected = false;
+    bool isFirsMoveSelected = false;
+    bool drawErrorMessage = false;
+    int errorMessageCounter = 0;
+    int rectangleCount = 0;
 
     for (int i = 0; i < 5; i++)
     {
-        MainMenuRecs[i] = (Rectangle){40.0f, (float)(50 + 32 * i), 150.0f, 30.0f};
+        MainMenuRecs[i] = (Rectangle){(screenWidth / 2) - 75.0f, (float)(250 + 32 * i), 150.0f, 30.0f};
     }
     // Main menu UI
 
@@ -135,8 +130,6 @@ int main()
     // main game loop
     while (!WindowShouldClose())
     {
-        // Game loop update section
-
         // Menu UI update
         if (currentGameState == MAINMENU)
         {
@@ -145,19 +138,15 @@ int main()
                 if (CheckCollisionPointRec(GetMousePosition(), MainMenuRecs[i]))
                 {
                     mouseHoverRec = i;
-                    printf("Mouse hover %d\n", mouseHoverRec);
-
-                    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-                    {
-                        mainMenuButtonSelected = i;
-                        buttonClicked = true;
-                    }
+                    break;
                 }
                 else
-                {
-                    // mouseHoverRec = -1;
-                    printf("Mouse hover %d\n", mouseHoverRec);
-                }
+                    mouseHoverRec = -1;
+            }
+            if ((mouseHoverRec >= 0) && IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            {
+                mainMenuButtonSelected = mouseHoverRec;
+                buttonClicked = true;
             }
             if (buttonClicked)
             {
@@ -167,32 +156,28 @@ int main()
                     {
                         player1 = std::make_unique<HumanPlayer>();
                         player2 = std::make_unique<HumanPlayer>();
-                        currentGameSettings.gameMode = HOTSEAT;
-                        mainMenuButtonSelected = 1;
-                        printf("Button HotSeat pressed");
+                        currentGameMode = HOTSEAT;
+                        isGameModeSelected = true;
                         break;
                     }
-
                     case 1:  // Versus AI
                     {
                         player1 = std::make_unique<HumanPlayer>();
                         player2 = std::make_unique<AIPlayer>();
-                        currentGameSettings.gameMode = VERSUS_AI;
-                        mainMenuButtonSelected = 2;
-                        printf("Button AI");
+                        currentGameMode = VERSUS_AI;
+                        isGameModeSelected = true;
                         break;
                     }
                     case 2:  // Player X moves first
                     {
-
                         if (player1 != nullptr && player2 != nullptr)
                         {
                             player1->setPiece(X);
                             player2->setPiece(O);
-                            currentGameSettings.gameReadyToStart = true;
+                            isFirsMoveSelected = true;
                         }
-                        mainMenuButtonSelected = 3;
-                        printf("Button X first");
+                        else
+                            drawErrorMessage = true;
                         break;
                     }
                     case 3:  // Player O moves first
@@ -201,15 +186,15 @@ int main()
                         {
                             player1->setPiece(O);
                             player2->setPiece(X);
-                            currentGameSettings.gameReadyToStart = true;
+                            isFirsMoveSelected = true;
                         }
-                        mainMenuButtonSelected = 4;
-                        printf("Button O first");
+                        else
+                            drawErrorMessage = true;
                         break;
                     }
                     case 4:  // Start game
                     {
-                        if (currentGameSettings.gameReadyToStart && (player1 != nullptr && player2 != nullptr))
+                        if ((isGameModeSelected && isFirsMoveSelected) && (player1 != nullptr && player2 != nullptr))
                         {
                             if (player1->getPiece() == X)
                             {
@@ -220,11 +205,21 @@ int main()
                                 currentGameState = PLAYER_O_MOVE;
                             }
                         }
-                        printf("Button Start");
+                        else
+                            drawErrorMessage = true;
                         break;
                     }
                 }
                 buttonClicked = false;
+            }
+            if (drawErrorMessage)
+            {
+                errorMessageCounter++;
+                if (errorMessageCounter > 60)
+                {
+                    drawErrorMessage = false;
+                    errorMessageCounter = 0;
+                }
             }
         }
         // Menu UI update
@@ -268,6 +263,9 @@ int main()
                 printf("Players destoyed");
             }
             grid.GridInit();
+            isGameModeSelected = false;
+            isFirsMoveSelected = false;
+            drawErrorMessage = false;
             currentGameState = MAINMENU;
             MoveNumber = 0;
         }
@@ -278,12 +276,60 @@ int main()
         window.ClearBackground(RAYWHITE);
         if (currentGameState == MAINMENU)
         {
-            // Draw rectangles
-            for (int i = 0; i < 5; i++)
+            DrawText(TextFormat("Please select a game mode and choose who moves first."), (screenWidth - MeasureText("Please select a game mode and choose who moves first.", 30)) / 2, screenHeight - 750, 30, GRAY);
+            DrawText(TextFormat("Then press the Start button."), (screenWidth - MeasureText("Then press the Start button.", 30)) / 2, screenHeight - 720, 30, GRAY);
+
+            if (drawErrorMessage)
             {
-                DrawRectangleRec(MainMenuRecs[i], ((i == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
-                DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mouseHoverRec)) ? BLUE : GRAY);
-                DrawText(MainMenuButtons[i], (int)(MainMenuRecs[i].x + MainMenuRecs[i].width / 2 - MeasureText(MainMenuButtons[i], 10) / 2), (int)MainMenuRecs[i].y + 11, 10, ((i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
+                DrawText("Please first select a game mode and who moves first", (screenWidth - MeasureText("Please first select a game mode and who moves first", 40)) / 2, (screenHeight / 2) - 20, 40, RED);
+            }
+            else
+            {  // Draw rectangles
+                if (isGameModeSelected && currentGameMode == HOTSEAT)
+                {
+                    DrawRectangleRec(MainMenuRecs[0], SKYBLUE);
+                }
+                else
+                {
+                    DrawRectangleRec(MainMenuRecs[0], ((0 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                }
+                if (isGameModeSelected && currentGameMode == VERSUS_AI)
+                {
+                    DrawRectangleRec(MainMenuRecs[1], SKYBLUE);
+                }
+                else
+                {
+                    DrawRectangleRec(MainMenuRecs[1], ((1 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                }
+                if (player1 != nullptr && (isFirsMoveSelected && player1->getPiece() == X))
+                {
+                    DrawRectangleRec(MainMenuRecs[2], SKYBLUE);
+                }
+                else
+                {
+                    DrawRectangleRec(MainMenuRecs[2], ((2 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                }
+                if (player1 != nullptr && (isFirsMoveSelected && player1->getPiece() == O))
+                {
+                    DrawRectangleRec(MainMenuRecs[3], SKYBLUE);
+                }
+                else
+                {
+                    DrawRectangleRec(MainMenuRecs[3], ((3 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                }
+                if (isGameModeSelected && isFirsMoveSelected)
+                {
+                    DrawRectangleRec(MainMenuRecs[4], GREEN);
+                }
+                else
+                {
+                    DrawRectangleRec(MainMenuRecs[4], ((4 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                }
+                for (int i = rectangleCount; i < 5; i++)
+                {
+                    DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mouseHoverRec)) ? BLUE : GRAY);
+                    DrawText(MainMenuButtons[i], (int)(MainMenuRecs[i].x + MainMenuRecs[i].width / 2 - MeasureText(MainMenuButtons[i], 20) / 2), (int)MainMenuRecs[i].y + 5, 20, ((i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
+                }
             }
         }
         if (currentGameState != MAINMENU)
@@ -369,13 +415,13 @@ void Grid::ChangeCellState(Vector2 MousePosition, GameState& currentGameState, s
             if (grid[i][j].value == EMPTY && currentGameState == PLAYER_X_MOVE)
             {
                 grid[i][j].value = X;
-                // board[cellNum] = X;
+                board[cellNum] = X;
                 MoveNumber++;
             }
             else if (grid[i][j].value == EMPTY && currentGameState == PLAYER_O_MOVE)
             {
                 grid[i][j].value = O;
-                // board[cellNum] = O;
+                board[cellNum] = O;
                 MoveNumber++;
             }
         }
