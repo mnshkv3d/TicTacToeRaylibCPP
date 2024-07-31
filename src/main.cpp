@@ -16,6 +16,7 @@ const int screenWidth = 1280;
 const int screenHeight = 800;
 int MoveNumber = 0;
 
+// UI text
 static const char* MainMenuMessage[] = {
     "Please select a game mode and choose who moves first.",
     "Then press the Start button.",
@@ -23,6 +24,7 @@ static const char* MainMenuMessage[] = {
 static const char* MainMenuButtons[] = {"Hotseat", "Versus AI", "X moves first", "O moves first", "Start Game"};
 static const char* WinText[] = {"PLAYER X WIN!", "PLAYER O WIN!", "IT'S A TIE!", "THE GAME IS FINISHED. PLAY AGAIN?"};
 static const char* YesNoText[] = {"YES", "NO"};
+// UI text
 
 enum CellValue
 {
@@ -104,7 +106,7 @@ int main()
     // Window init
 
     // creating game objects
-    GameState currentGameState;
+    GameState currentGameState = MAINMENU;
     GameMode currentGameMode;
     std::unique_ptr<Player> player1;
     std::unique_ptr<Player> player2;
@@ -121,8 +123,8 @@ int main()
     bool isGameFinished = false;
     bool drawErrorMessage = false;
     bool exitGame = false;
+
     int MessageCounter = 0;
-    int rectangleCount = 0;
 
     Rectangle MainMenuRecs[5] = {0};
     for (int i = 0; i < 5; i++)
@@ -132,21 +134,19 @@ int main()
     Rectangle YesNoRecs[2] = {0};
     for (int i = 0; i < 2; i++)
     {
-        YesNoRecs[i] = (Rectangle){(screenWidth / 2) - 75.0f, (float)(250 + 32 * i), 150.0f, 30.0f};
+        YesNoRecs[i] = (Rectangle){(screenWidth / 2) - 150.0f + 152.0f * i, 250.0f, 150.0f, 30.0f};
     }
     // Main menu UI
-
-    // initial game state
-    currentGameState = MAINMENU;
 
     // main game loop
     while (!exitGame)
     {
-        // Menu UI update
+
         if (window.ShouldClose() || IsKeyPressed(KEY_ESCAPE))
         {
             exitGame = true;
         }
+        // Menu UI update
         if (currentGameState == MAINMENU)
         {
             for (int i = 0; i < 5; i++)
@@ -210,7 +210,7 @@ int main()
                     }
                     case 4:  // Start game
                     {
-                        if ((isGameModeSelected && isFirsMoveSelected) && (player1 != nullptr && player2 != nullptr))
+                        if ((isGameModeSelected && isFirsMoveSelected))
                         {
                             if (player1->getPiece() == X)
                             {
@@ -239,6 +239,7 @@ int main()
             }
         }
         // Menu UI update
+
         // Restart menu
         if (currentGameState == GAME_FINISHED)
         {
@@ -284,6 +285,7 @@ int main()
             }
         }
         // Restart menu
+
         //  Player interaction section
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (currentGameState != MAINMENU) && IsMouseOnGrid(GetMousePosition()))
         {
@@ -385,7 +387,7 @@ int main()
                     {
                         DrawRectangleRec(MainMenuRecs[4], ((4 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
                     }
-                    for (int i = rectangleCount; i < 5; i++)
+                    for (int i = 0; i < 5; i++)
                     {
                         DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mouseHoverRec)) ? BLUE : GRAY);
                         DrawText(MainMenuButtons[i], (int)(MainMenuRecs[i].x + MainMenuRecs[i].width / 2 - MeasureText(MainMenuButtons[i], 20) / 2), (int)MainMenuRecs[i].y + 5, 20, ((i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
