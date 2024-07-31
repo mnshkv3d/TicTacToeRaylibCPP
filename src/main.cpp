@@ -16,9 +16,13 @@ const int screenWidth = 1280;
 const int screenHeight = 800;
 int MoveNumber = 0;
 
+static const char* MainMenuMessage[] = {
+    "Please select a game mode and choose who moves first.",
+    "Then press the Start button.",
+    "Please first select a game mode and who moves first"};
 static const char* MainMenuButtons[] = {"Hotseat", "Versus AI", "X moves first", "O moves first", "Start Game"};
-
-// static const char* WinText[] = {"PLAYER X WIN!", "PLAYER O WIN!", "IT'S A TIE!"};
+static const char* WinText[] = {"PLAYER X WIN!", "PLAYER O WIN!", "IT'S A TIE!", "THE GAME IS FINISHED. PLAY AGAIN?"};
+static const char* YesNoText[] = {"YES", "NO"};
 
 enum CellValue
 {
@@ -38,7 +42,8 @@ enum GameState
     PLAYER_O_MOVE,
     PLAYER_X_WIN,
     PLAYER_O_WIN,
-    TIE
+    TIE,
+    GAME_FINISHED
 };
 
 struct Cell
@@ -108,19 +113,26 @@ int main()
     // creating game objects
 
     // Main menu UI
-    Rectangle MainMenuRecs[5] = {0};
     int mainMenuButtonSelected = -1;
     int mouseHoverRec = -1;
     bool buttonClicked = false;
     bool isGameModeSelected = false;
     bool isFirsMoveSelected = false;
+    bool isGameFinished = false;
     bool drawErrorMessage = false;
-    int errorMessageCounter = 0;
+    bool exitGame = false;
+    int MessageCounter = 0;
     int rectangleCount = 0;
 
+    Rectangle MainMenuRecs[5] = {0};
     for (int i = 0; i < 5; i++)
     {
         MainMenuRecs[i] = (Rectangle){(screenWidth / 2) - 75.0f, (float)(250 + 32 * i), 150.0f, 30.0f};
+    }
+    Rectangle YesNoRecs[2] = {0};
+    for (int i = 0; i < 2; i++)
+    {
+        YesNoRecs[i] = (Rectangle){(screenWidth / 2) - 75.0f, (float)(250 + 32 * i), 150.0f, 30.0f};
     }
     // Main menu UI
 
@@ -128,9 +140,13 @@ int main()
     currentGameState = MAINMENU;
 
     // main game loop
-    while (!WindowShouldClose())
+    while (!exitGame)
     {
         // Menu UI update
+        if (window.ShouldClose() || IsKeyPressed(KEY_ESCAPE))
+        {
+            exitGame = true;
+        }
         if (currentGameState == MAINMENU)
         {
             for (int i = 0; i < 5; i++)
@@ -214,16 +230,61 @@ int main()
             }
             if (drawErrorMessage)
             {
-                errorMessageCounter++;
-                if (errorMessageCounter > 60)
+                MessageCounter++;
+                if (MessageCounter > 60)
                 {
                     drawErrorMessage = false;
-                    errorMessageCounter = 0;
+                    MessageCounter = 0;
                 }
             }
         }
         // Menu UI update
-        // Player interaction section
+        // Restart menu
+        if (currentGameState == GAME_FINISHED)
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                if (CheckCollisionPointRec(GetMousePosition(), YesNoRecs[i]))
+                {
+                    mouseHoverRec = i;
+                    break;
+                }
+                else
+                    mouseHoverRec = -1;
+            }
+            if ((mouseHoverRec >= 0) && IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            {
+                mainMenuButtonSelected = mouseHoverRec;
+                buttonClicked = true;
+            }
+            if (buttonClicked)
+            {
+                switch (mainMenuButtonSelected)
+                {
+                    case 0: {
+                        if (player1 != nullptr && player2 != nullptr)
+                        {
+                            player1 = nullptr;
+                            player2 = nullptr;
+                            printf("Players destoyed");
+                        }
+                        grid.GridInit();
+                        isGameModeSelected = false;
+                        isFirsMoveSelected = false;
+                        drawErrorMessage = false;
+                        currentGameState = MAINMENU;
+                        MoveNumber = 0;
+                        break;
+                    }
+
+                    case 1:
+                        exitGame = true;
+                        break;
+                }
+            }
+        }
+        // Restart menu
+        //  Player interaction section
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (currentGameState != MAINMENU) && IsMouseOnGrid(GetMousePosition()))
         {
             if (currentGameState == PLAYER_X_MOVE)
@@ -242,116 +303,123 @@ int main()
             if (grid.CheckWinner())
             {
                 currentGameState = PLAYER_X_WIN;
+                isGameFinished = true;
                 printf("WIN X");
             }
             if (grid.CheckWinner())
             {
                 currentGameState = PLAYER_O_WIN;
+                isGameFinished = true;
                 printf("WIN O");
             }
         }
         if (MoveNumber == 9 && currentGameState != PLAYER_X_WIN && currentGameState != PLAYER_O_WIN)
         {
             currentGameState = TIE;
+            isGameFinished = true;
         }
-        if (IsKeyPressed(KEY_SPACE) && currentGameState != PLAYER_X_MOVE && currentGameState != PLAYER_O_MOVE)
+        if (isGameFinished)
         {
-            if (player1 != nullptr && player2 != nullptr)
+            MessageCounter++;
+            if (MessageCounter > 120)
             {
-                player1 = nullptr;
-                player2 = nullptr;
-                printf("Players destoyed");
+                currentGameState = GAME_FINISHED;
+                MessageCounter = 0;
+                isGameFinished = false;
             }
-            grid.GridInit();
-            isGameModeSelected = false;
-            isFirsMoveSelected = false;
-            drawErrorMessage = false;
-            currentGameState = MAINMENU;
-            MoveNumber = 0;
         }
         // Player interaction section
 
         //  Drawing section
-        BeginDrawing();
+        window.BeginDrawing();
         window.ClearBackground(RAYWHITE);
-        if (currentGameState == MAINMENU)
+        switch (currentGameState)
         {
-            DrawText(TextFormat("Please select a game mode and choose who moves first."), (screenWidth - MeasureText("Please select a game mode and choose who moves first.", 30)) / 2, screenHeight - 750, 30, GRAY);
-            DrawText(TextFormat("Then press the Start button."), (screenWidth - MeasureText("Then press the Start button.", 30)) / 2, screenHeight - 720, 30, GRAY);
+            case 0: {
+                DrawText(MainMenuMessage[0], (screenWidth - MeasureText(MainMenuMessage[0], 30)) / 2, screenHeight - 750, 30, GRAY);
+                DrawText(MainMenuMessage[1], (screenWidth - MeasureText(MainMenuMessage[1], 30)) / 2, screenHeight - 720, 30, GRAY);
 
-            if (drawErrorMessage)
-            {
-                DrawText("Please first select a game mode and who moves first", (screenWidth - MeasureText("Please first select a game mode and who moves first", 40)) / 2, (screenHeight / 2) - 20, 40, RED);
+                if (drawErrorMessage)
+                {
+                    DrawText(MainMenuMessage[2], (screenWidth - MeasureText(MainMenuMessage[2], 40)) / 2, (screenHeight / 2) - 20, 40, RED);
+                }
+                else
+                {  // Draw rectangles
+                    if (isGameModeSelected && currentGameMode == HOTSEAT)
+                    {
+                        DrawRectangleRec(MainMenuRecs[0], SKYBLUE);
+                    }
+                    else
+                    {
+                        DrawRectangleRec(MainMenuRecs[0], ((0 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                    }
+                    if (isGameModeSelected && currentGameMode == VERSUS_AI)
+                    {
+                        DrawRectangleRec(MainMenuRecs[1], SKYBLUE);
+                    }
+                    else
+                    {
+                        DrawRectangleRec(MainMenuRecs[1], ((1 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                    }
+                    if (player1 != nullptr && (isFirsMoveSelected && player1->getPiece() == X))
+                    {
+                        DrawRectangleRec(MainMenuRecs[2], SKYBLUE);
+                    }
+                    else
+                    {
+                        DrawRectangleRec(MainMenuRecs[2], ((2 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                    }
+                    if (player1 != nullptr && (isFirsMoveSelected && player1->getPiece() == O))
+                    {
+                        DrawRectangleRec(MainMenuRecs[3], SKYBLUE);
+                    }
+                    else
+                    {
+                        DrawRectangleRec(MainMenuRecs[3], ((3 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                    }
+                    if (isGameModeSelected && isFirsMoveSelected)
+                    {
+                        DrawRectangleRec(MainMenuRecs[4], GREEN);
+                    }
+                    else
+                    {
+                        DrawRectangleRec(MainMenuRecs[4], ((4 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                    }
+                    for (int i = rectangleCount; i < 5; i++)
+                    {
+                        DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mouseHoverRec)) ? BLUE : GRAY);
+                        DrawText(MainMenuButtons[i], (int)(MainMenuRecs[i].x + MainMenuRecs[i].width / 2 - MeasureText(MainMenuButtons[i], 20) / 2), (int)MainMenuRecs[i].y + 5, 20, ((i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
+                    }
+                }
+                break;
             }
-            else
-            {  // Draw rectangles
-                if (isGameModeSelected && currentGameMode == HOTSEAT)
+            case 3:
+                DrawText(TextFormat(WinText[0]), (screenWidth - MeasureText(WinText[0], 40)) / 2, screenHeight - 750, 40, BLUE);
+                grid.DrawGrid();
+                break;
+            case 4:
+                DrawText(TextFormat(WinText[1]), (screenWidth - MeasureText(WinText[1], 40)) / 2, screenHeight - 750, 40, BLUE);
+                grid.DrawGrid();
+                break;
+            case 5:
+                DrawText(TextFormat(WinText[2]), (screenWidth - MeasureText(WinText[2], 40)) / 2, screenHeight - 750, 40, BLUE);
+                grid.DrawGrid();
+                break;
+            case 6:
+                DrawText(TextFormat(WinText[3]), (screenWidth - MeasureText(WinText[3], 40)) / 2, screenHeight - 750, 40, BLUE);
+                for (int i = 0; i < 2; i++)
                 {
-                    DrawRectangleRec(MainMenuRecs[0], SKYBLUE);
+                    DrawRectangleRec(YesNoRecs[i], ((i == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
+                    DrawRectangleLines((int)YesNoRecs[i].x, (int)YesNoRecs[i].y, (int)YesNoRecs[i].width, (int)YesNoRecs[i].height, ((i == mouseHoverRec)) ? BLUE : GRAY);
+                    DrawText(YesNoText[i], (int)(YesNoRecs[i].x + YesNoRecs[i].width / 2 - MeasureText(YesNoText[i], 20) / 2), (int)YesNoRecs[i].y + 5, 20, ((i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
                 }
-                else
-                {
-                    DrawRectangleRec(MainMenuRecs[0], ((0 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
-                }
-                if (isGameModeSelected && currentGameMode == VERSUS_AI)
-                {
-                    DrawRectangleRec(MainMenuRecs[1], SKYBLUE);
-                }
-                else
-                {
-                    DrawRectangleRec(MainMenuRecs[1], ((1 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
-                }
-                if (player1 != nullptr && (isFirsMoveSelected && player1->getPiece() == X))
-                {
-                    DrawRectangleRec(MainMenuRecs[2], SKYBLUE);
-                }
-                else
-                {
-                    DrawRectangleRec(MainMenuRecs[2], ((2 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
-                }
-                if (player1 != nullptr && (isFirsMoveSelected && player1->getPiece() == O))
-                {
-                    DrawRectangleRec(MainMenuRecs[3], SKYBLUE);
-                }
-                else
-                {
-                    DrawRectangleRec(MainMenuRecs[3], ((3 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
-                }
-                if (isGameModeSelected && isFirsMoveSelected)
-                {
-                    DrawRectangleRec(MainMenuRecs[4], GREEN);
-                }
-                else
-                {
-                    DrawRectangleRec(MainMenuRecs[4], ((4 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
-                }
-                for (int i = rectangleCount; i < 5; i++)
-                {
-                    DrawRectangleLines((int)MainMenuRecs[i].x, (int)MainMenuRecs[i].y, (int)MainMenuRecs[i].width, (int)MainMenuRecs[i].height, ((i == mouseHoverRec)) ? BLUE : GRAY);
-                    DrawText(MainMenuButtons[i], (int)(MainMenuRecs[i].x + MainMenuRecs[i].width / 2 - MeasureText(MainMenuButtons[i], 20) / 2), (int)MainMenuRecs[i].y + 5, 20, ((i == mouseHoverRec)) ? DARKBLUE : DARKGRAY);
-                }
-            }
+                break;
+            default:
+                grid.DrawGrid();
+                break;
         }
-        if (currentGameState != MAINMENU)
-        {
-            grid.DrawGrid();
-        }
-        if (currentGameState == PLAYER_X_WIN)
-        {
-            DrawText(TextFormat("PLAYER X WIN!"), (screenWidth - MeasureText("PLAYER X WIN!", 40)) / 2, screenHeight - 750, 40, BLUE);
-        }
-        if (currentGameState == PLAYER_O_WIN)
-        {
-            DrawText(TextFormat("PLAYER O WIN!"), (screenWidth - MeasureText("PLAYER O WIN!", 40)) / 2, screenHeight - 750, 40, BLUE);
-        }
-        if (currentGameState == TIE)
-        {
-            DrawText(TextFormat("IT'S A TIE!"), (screenWidth - MeasureText("IT'S A TIE!", 40)) / 2, screenHeight - 750, 40, BLUE);
-        }
-        EndDrawing();
+        window.EndDrawing();
     }
-
-    CloseWindow();
     return 0;
 }
 
