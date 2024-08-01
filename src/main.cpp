@@ -30,7 +30,9 @@ enum CellValue
 {
     EMPTY,
     X,
-    O
+    O,
+    TIES,
+    NO_ONE
 };
 enum GameMode
 {
@@ -66,8 +68,8 @@ public:
     Grid();
     void GridInit();
     void DrawGrid();
-    void ChangeCellState(Vector2 MousePosition, GameState& currentGameState, std::vector<CellValue>& board);
-    bool CheckWinner();
+    void ChangeCellState(Vector2 MousePosition, CellValue player, std::vector<CellValue>& board);
+    void ChangeCellColor(GameState& currentGameState);
 
 private:
     std::vector<std::vector<Cell>> grid;
@@ -79,7 +81,7 @@ class Player
 
 public:
     virtual ~Player() {}
-
+    virtual void HumanMove(Grid& grid, std::vector<CellValue>& board);
     void setPiece(CellValue p) { piece = p; };
     CellValue getPiece() const { return piece; };
 };
@@ -87,7 +89,7 @@ public:
 class HumanPlayer : public Player
 {
 public:
-    void HumanMove();
+    void HumanMove(Grid& grid, std::vector<CellValue>& board) override;
 };
 
 class AIPlayer : public Player
@@ -95,6 +97,10 @@ class AIPlayer : public Player
 public:
     void AIMove();
 };
+
+CellValue checkWinner(std::vector<CellValue> board);
+
+void announceWinner(CellValue winner, CellValue player1, CellValue player2, GameState& currentGameState);
 
 bool IsMouseOnGrid(Vector2 MousePosition);
 
@@ -119,7 +125,7 @@ int main()
     int mouseHoverRec = -1;
     bool buttonClicked = false;
     bool isGameModeSelected = false;
-    bool isFirsMoveSelected = false;
+    bool isFirstMoveSelected = false;
     bool isGameFinished = false;
     bool drawErrorMessage = false;
     bool exitGame = false;
@@ -142,6 +148,7 @@ int main()
     while (!exitGame)
     {
 
+        printf("Current game state: %d\n", currentGameState);
         if (window.ShouldClose() || IsKeyPressed(KEY_ESCAPE))
         {
             exitGame = true;
@@ -190,7 +197,7 @@ int main()
                         {
                             player1->setPiece(X);
                             player2->setPiece(O);
-                            isFirsMoveSelected = true;
+                            isFirstMoveSelected = true;
                         }
                         else
                             drawErrorMessage = true;
@@ -202,7 +209,7 @@ int main()
                         {
                             player1->setPiece(O);
                             player2->setPiece(X);
-                            isFirsMoveSelected = true;
+                            isFirstMoveSelected = true;
                         }
                         else
                             drawErrorMessage = true;
@@ -210,7 +217,7 @@ int main()
                     }
                     case 4:  // Start game
                     {
-                        if ((isGameModeSelected && isFirsMoveSelected))
+                        if ((isGameModeSelected && isFirstMoveSelected))
                         {
                             if (player1->getPiece() == X)
                             {
@@ -271,7 +278,7 @@ int main()
                         }
                         grid.GridInit();
                         isGameModeSelected = false;
-                        isFirsMoveSelected = false;
+                        isFirstMoveSelected = false;
                         drawErrorMessage = false;
                         currentGameState = MAINMENU;
                         MoveNumber = 0;
@@ -285,41 +292,49 @@ int main()
             }
         }
         // Restart menu
-
-        //  Player interaction section
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (currentGameState != MAINMENU) && IsMouseOnGrid(GetMousePosition()))
+        if (currentGameState == PLAYER_X_MOVE && player1)
         {
-            if (currentGameState == PLAYER_X_MOVE)
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsMouseOnGrid(GetMousePosition()))
             {
-                grid.ChangeCellState(GetMousePosition(), currentGameState, board);
-                currentGameState = PLAYER_O_MOVE;
-            }
-            else if (currentGameState == PLAYER_O_MOVE)
-            {
-                grid.ChangeCellState(GetMousePosition(), currentGameState, board);
-                currentGameState = PLAYER_X_MOVE;
+                player1->HumanMove(grid, board);
+                announceWinner(checkWinner(board), player1->getPiece(), player2->getPiece(), currentGameState);
             }
         }
-        if (MoveNumber >= 5 && (currentGameState == PLAYER_X_MOVE || currentGameState == PLAYER_O_MOVE))
+        else if (currentGameState == PLAYER_O_MOVE && player2)
         {
-            if (grid.CheckWinner())
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsMouseOnGrid(GetMousePosition()))
             {
-                currentGameState = PLAYER_X_WIN;
-                isGameFinished = true;
-                printf("WIN X");
-            }
-            if (grid.CheckWinner())
-            {
-                currentGameState = PLAYER_O_WIN;
-                isGameFinished = true;
-                printf("WIN O");
+                player2->HumanMove(grid, board);
+                announceWinner(checkWinner(board), player2->getPiece(), player1->getPiece(), currentGameState);
             }
         }
-        if (MoveNumber == 9 && currentGameState != PLAYER_X_WIN && currentGameState != PLAYER_O_WIN)
-        {
-            currentGameState = TIE;
-            isGameFinished = true;
-        }
+        // if (MoveNumber >= 5 && (currentGameState == PLAYER_X_MOVE || currentGameState == PLAYER_O_MOVE))
+        // {
+        //     if (checkWinner(board) == X)
+        //     {
+        //         currentGameState = PLAYER_X_WIN;
+        //         isGameFinished = true;
+        //         grid.ChangeCellColor(currentGameState);
+        //         printf("WIN X\n");
+        //     }
+        //     else if (checkWinner(board) == O)
+        //     {
+        //         currentGameState = PLAYER_O_WIN;
+        //         isGameFinished = true;
+        //         grid.ChangeCellColor(currentGameState);
+        //         printf("WIN O\n");
+        //     }
+        //     else if (checkWinner(board) == TIES)
+        //     {
+        //         currentGameState = TIE;
+        //         isGameFinished = true;
+        //     }
+        //     else if (checkWinner(board) == NO_ONE)
+        //     {
+        //         break;
+        //         printf("NO ONE");
+        //     }
+        // }
         if (isGameFinished)
         {
             MessageCounter++;
@@ -331,7 +346,6 @@ int main()
             }
         }
         // Player interaction section
-
         //  Drawing section
         window.BeginDrawing();
         window.ClearBackground(RAYWHITE);
@@ -363,7 +377,7 @@ int main()
                     {
                         DrawRectangleRec(MainMenuRecs[1], ((1 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
                     }
-                    if (player1 != nullptr && (isFirsMoveSelected && player1->getPiece() == X))
+                    if (player1 != nullptr && (isFirstMoveSelected && player1->getPiece() == X))
                     {
                         DrawRectangleRec(MainMenuRecs[2], SKYBLUE);
                     }
@@ -371,7 +385,7 @@ int main()
                     {
                         DrawRectangleRec(MainMenuRecs[2], ((2 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
                     }
-                    if (player1 != nullptr && (isFirsMoveSelected && player1->getPiece() == O))
+                    if (player1 != nullptr && (isFirstMoveSelected && player1->getPiece() == O))
                     {
                         DrawRectangleRec(MainMenuRecs[3], SKYBLUE);
                     }
@@ -379,7 +393,7 @@ int main()
                     {
                         DrawRectangleRec(MainMenuRecs[3], ((3 == mouseHoverRec)) ? SKYBLUE : LIGHTGRAY);
                     }
-                    if (isGameModeSelected && isFirsMoveSelected)
+                    if (isGameModeSelected && isFirstMoveSelected)
                     {
                         DrawRectangleRec(MainMenuRecs[4], GREEN);
                     }
@@ -440,7 +454,6 @@ void Grid::GridInit()
         {
             grid[i][j] = Cell(cellNumber, i, j, EMPTY, LIGHTGRAY);
             cellNumber++;
-            printf("Cell number: %d\n", grid[i][j].cellNumber);
         }
     }
 }
@@ -471,7 +484,7 @@ void Grid::DrawGrid()
     }
 }
 
-void Grid::ChangeCellState(Vector2 MousePosition, GameState& currentGameState, std::vector<CellValue>& board)
+void Grid::ChangeCellState(Vector2 MousePosition, CellValue player, std::vector<CellValue>& board)
 {
     {
         int i = (MousePosition.x - ((screenWidth / 2) - 300)) / cellWidth;
@@ -482,64 +495,96 @@ void Grid::ChangeCellState(Vector2 MousePosition, GameState& currentGameState, s
         {
             // change cell state
 
-            if (grid[i][j].value == EMPTY && currentGameState == PLAYER_X_MOVE)
+            if (grid[i][j].value == EMPTY && player == X)
             {
                 grid[i][j].value = X;
                 board[cellNum] = X;
                 MoveNumber++;
             }
-            else if (grid[i][j].value == EMPTY && currentGameState == PLAYER_O_MOVE)
+            else if (grid[i][j].value == EMPTY && player == O)
             {
                 grid[i][j].value = O;
                 board[cellNum] = O;
                 MoveNumber++;
             }
+            printf("Cell num: %d\n", cellNum);
         }
     }
 }
 
-bool Grid::CheckWinner()
+void Grid::ChangeCellColor(GameState& currentGameState)
 {
-    if (MoveNumber >= 5)
+    CellValue winner = (currentGameState == PLAYER_X_WIN) ? X : (currentGameState == PLAYER_O_WIN) ? O
+                                                                                                   : EMPTY;
+
+    if (winner != EMPTY)
     {
         for (int i = 0; i < COLS; i++)
         {
-            if (grid[0][i].value != EMPTY && grid[0][i].value == grid[1][i].value && grid[1][i].value == grid[2][i].value)
+            for (int j = 0; j < ROWS; j++)
             {
-                for (int j = 0; j < COLS; j++)
-                {
-                    grid[j][i].cellColor = GREEN;
-                }
-                return true;
-            }
-            else if (grid[i][0].value != EMPTY && grid[i][0].value == grid[i][1].value && grid[i][1].value == grid[i][2].value)
-            {
-                for (int j = 0; j < COLS; j++)
+                if (grid[i][j].value == winner)
                 {
                     grid[i][j].cellColor = GREEN;
                 }
-                return true;
             }
-        }
-        // diagonal 1
-        if (grid[0][0].value != EMPTY && grid[0][0].value == grid[1][1].value && grid[1][1].value == grid[2][2].value)
-        {
-            for (int i = 0; i < COLS; i++)
-            {
-                grid[i][i].cellColor = GREEN;
-            }
-            return true;
-        }
-        // diagonal 2
-        if (grid[2][0].value != EMPTY && grid[2][0].value == grid[1][1].value && grid[1][1].value == grid[0][2].value)
-        {
-            grid[2][0].cellColor = GREEN;
-            grid[1][1].cellColor = GREEN;
-            grid[0][2].cellColor = GREEN;
-            return true;
         }
     }
-    return false;
+}
+
+CellValue checkWinner(std::vector<CellValue> board)
+{
+    // all possible win rows
+    const int WINNING_ROWS[8][3] = {
+        {0, 1, 2},
+        {3, 4, 5},
+        {6, 7, 8},
+        {0, 3, 6},
+        {1, 4, 7},
+        {2, 5, 8},
+        {0, 4, 8},
+        {2, 4, 6}};
+
+    // if in one of the winning rows already had all 3 signs (!= EMPTY) when the winner are announce
+    for (int i = 0; i < 8; i++)
+    {
+        if ((board[WINNING_ROWS[i][0]] != EMPTY) &&
+            (board[WINNING_ROWS[i][0]] == board[WINNING_ROWS[i][1]]) &&
+            (board[WINNING_ROWS[i][1]] == board[WINNING_ROWS[i][2]]))
+        {
+            return CellValue(board[WINNING_ROWS[i][0]]);
+        }
+    }
+    if (std::count(board.begin(), board.end(), EMPTY) == 0)
+    {
+        return TIES;
+    }
+    printf("CheckWinner\n");
+    return NO_ONE;
+}
+
+void announceWinner(CellValue winner, CellValue player1, CellValue player2, GameState& currentGameState)
+{
+    if (winner == player1 || winner == player2)
+    {
+        if (winner == X)
+        {
+            currentGameState = PLAYER_X_WIN;
+        }
+        else if (winner == O)
+        {
+            currentGameState = PLAYER_O_WIN;
+        }
+    }
+    else if (winner == TIES)
+    {
+        currentGameState = TIE;
+    }
+    else if (winner == NO_ONE)
+    {
+        currentGameState = (currentGameState == PLAYER_O_MOVE) ? PLAYER_X_MOVE : PLAYER_O_MOVE;
+    }
+    printf("announce\n");
 }
 
 bool IsMouseOnGrid(Vector2 MousePosition)
@@ -556,10 +601,16 @@ bool IsMouseOnGrid(Vector2 MousePosition)
     }
 }
 
-void HumanPlayer::HumanMove()
+void AIPlayer::AIMove()
 {
 }
 
-void AIPlayer::AIMove()
+void HumanPlayer::HumanMove(Grid& grid, std::vector<CellValue>& board)
+{
+    grid.ChangeCellState(GetMousePosition(), this->getPiece(), board);
+    printf("HumanMove\n");
+}
+
+void Player::HumanMove(Grid& grid, std::vector<CellValue>& board)
 {
 }
